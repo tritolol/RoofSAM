@@ -1,5 +1,7 @@
 dataset
+checkpoints
 .DS_Store
 .vscode
 
 *.pth
+*.pyc
