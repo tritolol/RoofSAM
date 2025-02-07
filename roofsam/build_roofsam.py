@@ -1,12 +1,12 @@
 from functools import partial
 import torch
-from segment_anything.segment_anything.modeling import (
+from segment_anything.modeling import (
     ImageEncoderViT,
     PromptEncoder,
     TwoWayTransformer,
 )
-from roofsam.roofsam import RoofSam
-from roofsam.class_decoder import ClassDecoder
+from roofsam.modeling.roofsam import RoofSam
+from roofsam.modeling.class_decoder import ClassDecoder
 
 
 def build_roofsam_from_sam_vit_h_checkpoint(
