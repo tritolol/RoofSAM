@@ -6,7 +6,8 @@ setup(
     install_requires=[
         "tqdm",
         "shapely>=2.0.7",
-        "scikit-learn>=1.6.1"
+        "scikit-learn>=1.6.1",
+        "pillow>=11.1.0"
     ],
     packages=find_packages(),
     extras_require={
