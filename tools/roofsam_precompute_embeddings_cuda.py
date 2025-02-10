@@ -2,6 +2,8 @@
 import os
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+import requests
+
 from PIL import Image
 import numpy as np
 from tqdm import tqdm
@@ -41,9 +43,25 @@ def parse_args():
 
 
 def download_checkpoint_if_needed(checkpoint):
+    """
+    Download the checkpoint from the remote URL if it doesn't exist locally.
+    Uses the `requests` library for downloading.
+    
+    Args:
+        checkpoint (str): The filename of the checkpoint.
+    """
     if not os.path.exists(checkpoint):
         print(f"Downloading checkpoint {checkpoint}...")
-        os.system(f"wget https://dl.fbaipublicfiles.com/segment_anything/{checkpoint}")
+        url = f"https://dl.fbaipublicfiles.com/segment_anything/{checkpoint}"
+
+        response = requests.get(url, stream=True, timeout=10)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (e.g., 404)
+        
+        # Write the downloaded content to the checkpoint file in chunks.
+        with open(checkpoint, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
 
 
 def process_images_for_device(image_list, device_id, dop_path, emb_path, checkpoint):
