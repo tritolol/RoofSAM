@@ -9,7 +9,7 @@ from tqdm import tqdm
 from sklearn.metrics import f1_score
 import numpy as np
 
-from utils import majority_vote, set_requires_grad
+from roofsam.utils import majority_vote, set_requires_grad
 
 from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint

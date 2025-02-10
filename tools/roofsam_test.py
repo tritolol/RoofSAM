@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.metrics import f1_score
 
-from utils import majority_vote
+from roofsam.utils import majority_vote
 
 from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
