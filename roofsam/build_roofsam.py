@@ -1,12 +1,15 @@
 from functools import partial
-import torch
 import hashlib
+import io
+
+import torch
 
 from segment_anything.modeling import (
     ImageEncoderViT,
     PromptEncoder,
     TwoWayTransformer,
 )
+
 from roofsam.modeling.roofsam import RoofSam
 from roofsam.modeling.class_decoder import ClassDecoder
 
@@ -17,28 +20,46 @@ EXPECTED_SAM_VIT_H_CHECKPOINT_HASH = (
 )
 
 
-def compute_file_hash(filepath, hash_algo="sha256"):
+def load_and_verify_checkpoint(filepath, expected_hash, hash_algo="sha256"):
     """
-    Computes the hash of a file using the specified hash algorithm.
+    Loads the checkpoint file into memory, computes its hash, verifies it,
+    and then loads the checkpoint as a torch state dict.
+
+    Args:
+        filepath (str): Path to the checkpoint file.
+        expected_hash (str): The expected hash string.
+        hash_algo (str): The hashing algorithm to use (default is 'sha256').
+
+    Returns:
+        The checkpoint loaded via torch.load if the hash matches.
+
+    Raises:
+        ValueError: If the computed hash does not match the expected hash.
     """
-    hash_func = hashlib.new(hash_algo)
+    # Load the file into memory once.
     with open(filepath, "rb") as f:
-        for block in iter(lambda: f.read(4096), b""):
-            hash_func.update(block)
-    return hash_func.hexdigest()
+        file_data = f.read()
+
+    # Compute the hash on the in-memory bytes.
+    computed_hash = hashlib.new(hash_algo, file_data).hexdigest()
+    if computed_hash != expected_hash:
+        raise ValueError(
+            f"Hash mismatch for {filepath}: computed {computed_hash}, expected {expected_hash}"
+        )
+
+    # Wrap the in-memory bytes with BytesIO and load the checkpoint.
+    buffer = io.BytesIO(file_data)
+    checkpoint = torch.load(buffer)
+    return checkpoint
 
 
 def build_roofsam_from_sam_vit_h_checkpoint(
     num_classes, sam_checkpoint, roof_sam_mask_decoder_checkpoint=None
 ):
-    # Compute and check the hash for the sam_checkpoint file.
-    checkpoint_hash = compute_file_hash(sam_checkpoint)
-    if checkpoint_hash != EXPECTED_SAM_VIT_H_CHECKPOINT_HASH:
-        raise ValueError(
-            f"Invalid sam_checkpoint hash: {checkpoint_hash}. "
-            f"Expected: {EXPECTED_SAM_VIT_H_CHECKPOINT_HASH}. "
-            f"Make sure to load the sam_vit_h_4b8939.pth checkpoint."
-        )
+    # Compute and verify the hash for the sam_checkpoint file.
+    sam_state_dict = load_and_verify_checkpoint(
+        sam_checkpoint, EXPECTED_SAM_VIT_H_CHECKPOINT_HASH
+    )
 
     # Build the RoofSAM model using the provided sam_checkpoint.
     roofsam = _build_roofsam(
@@ -47,7 +68,7 @@ def build_roofsam_from_sam_vit_h_checkpoint(
         encoder_num_heads=16,
         encoder_global_attn_indexes=[7, 15, 23, 31],
         num_classes=num_classes,
-        sam_checkpoint=sam_checkpoint,
+        sam_state_dict=sam_state_dict,
     )
 
     if roof_sam_mask_decoder_checkpoint is not None:
@@ -65,7 +86,7 @@ def _build_roofsam(
     encoder_num_heads,
     encoder_global_attn_indexes,
     num_classes,
-    sam_checkpoint=None,
+    sam_state_dict=None,
 ):
     prompt_embed_dim = 256
     image_size = 1024
@@ -109,11 +130,9 @@ def _build_roofsam(
         ),
     )
 
-    if sam_checkpoint is not None:
-        with open(sam_checkpoint, "rb") as f:
-            state_dict = torch.load(f)
+    if sam_state_dict is not None:
         missing_keys, unexpected_keys = roofsam.load_state_dict(
-            state_dict, strict=False
+            sam_state_dict, strict=False
         )
         expected_missing = [
             x.startswith("mask_decoder.class_pred_mlp") for x in missing_keys

@@ -35,7 +35,7 @@ def parse_args():
         type=str,
         default="sam_vit_h_4b8939.pth",
         help="Path to the SAM checkpoint file. "
-        "Defaults to the ViT-H model checkpoint (sam_vit_h_4b8939.pth).",
+        "Only the ViT-H model checkpoint (sam_vit_h_4b8939.pth) is supported.",
     )
     return parser.parse_args()
 

@@ -65,7 +65,7 @@ def parse_args():
         "--sam_checkpoint",
         type=str,
         default="sam_vit_h_4b8939.pth",
-        help="Path to the SAM checkpoint file.",
+        help="Path to the sam_vit_h_4b8939.pth SAM checkpoint file.",
     )
 
     return parser.parse_args()
