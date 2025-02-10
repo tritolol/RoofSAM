@@ -57,7 +57,7 @@ Note: Ensure that wget, unzip, and ogr2ogr (from GDAL) are installed and availab
 
 ## Building the Dataset
 
-The experiments in the paper used a proprietary dataset from Wuppertal, Germany. To facilitate reproducibility, we provide a script that builds a comparable dataset using aerial imagery from the publicly available [ North-Rhine Westphalia geo data portal ](https://www.opengeodata.nrw.de/produkte/). This dataset offers imagery at resolutions up to 10cm/pixel—matching the quality and resolution used in the paper.
+The experiments in the paper used a proprietary dataset from Wuppertal, Germany. To facilitate reproducibility, we provide a script that builds a comparable dataset using aerial imagery from the publicly available [North-Rhine Westphalia geo data portal](https://www.opengeodata.nrw.de/produkte/). This dataset offers imagery at resolutions up to 10cm/pixel—matching the quality and resolution used in the paper.
 
 The dataset creation script:
 - Downloads building cadastre data.
