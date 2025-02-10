@@ -186,6 +186,7 @@ def main(args):
             torch.save(model.mask_decoder.state_dict(), checkpoint_path)
             print(f"New best model found and saved at {checkpoint_path}")
 
+
 if __name__ == "__main__":
     # Define command-line arguments for all the constants
     parser = argparse.ArgumentParser(description="Train the RoofSAM decoder.")

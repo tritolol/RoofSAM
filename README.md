@@ -115,7 +115,7 @@ The repository provides several command-line tools located in the `tools/` direc
     Description: Train the RoofSAM model using the provided dataset. Requires precomputed image embeddings.
 - Testing:
 
-    `test.py`
+    `roofsam_test.py`
 
     Description: Evaluate a trained model. Also requires precomputed image embeddings.
 

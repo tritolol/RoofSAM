@@ -1,16 +1,18 @@
-from typing import Any, Dict 
+from typing import Any, Dict
 import torch
 from torch import nn
 from segment_anything.modeling import ImageEncoderViT
 from segment_anything.modeling import PromptEncoder
 from roofsam.modeling.class_decoder import ClassDecoder
 
+
 class RoofSam(nn.Module):
-    def __init__(self,
+    def __init__(
+        self,
         image_encoder: ImageEncoderViT,
         prompt_encoder: PromptEncoder,
         mask_decoder: ClassDecoder,
-        ) -> None:
+    ) -> None:
         """
         RoofSAM classifies input prompts based on an image.
 
@@ -46,15 +48,15 @@ class RoofSam(nn.Module):
                 for each point coordinate with shape BxN,
 
         Returns:
-          logits: (torch.Tensor) Batched class probability logits with 
+          logits: (torch.Tensor) Batched class probability logits with
             shape BxNxC
         """
         image_embeddings = batched_input["embeddings"]
         sparse_embeddings, dense_embeddings = self.prompt_encoder(
-                points=(batched_input["point_coords"], batched_input["point_labels"]),
-                boxes=None,   # never use boxes or masks
-                masks=None,
-            )
+            points=(batched_input["point_coords"], batched_input["point_labels"]),
+            boxes=None,  # never use boxes or masks
+            masks=None,
+        )
 
         logits = self.mask_decoder(
             image_embeddings=image_embeddings,

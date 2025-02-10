@@ -53,8 +53,8 @@ def main():
         "--cuda-devices",
         type=str,
         default="all",
-        help='Comma-separated list of CUDA device IDs'
-         ' to use (e.g. "0,1") or "all" to use all available devices.',
+        help="Comma-separated list of CUDA device IDs"
+        ' to use (e.g. "0,1") or "all" to use all available devices.',
     )
     parser.add_argument(
         "--dataset-root",

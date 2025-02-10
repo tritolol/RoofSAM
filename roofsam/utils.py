@@ -4,6 +4,7 @@ import torch
 from torch import nn
 import numpy as np
 
+
 def majority_vote(preds: torch.Tensor) -> torch.Tensor:
     """
     Computes the majority vote for each sample (each row of predictions).

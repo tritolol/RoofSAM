@@ -16,6 +16,7 @@ from shapely import Polygon
 # Optional debug plotting
 DEBUG = False
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Download and process DOP images and roof polygon data using a WCS service."
@@ -90,7 +91,7 @@ def parse_args():
     parser.add_argument(
         "--ogr-where",
         type=str,
-        default='dachform IS NOT NULL',
+        default="dachform IS NOT NULL",
         help="SQL WHERE clause to filter features during ogr2ogr conversion.",
     )
     parser.add_argument(
@@ -143,14 +144,24 @@ def convert_gru_to_shapefile(xml_file, ogr_output_shp, ogr_layer, ogr_srs, ogr_w
             print("File conversion failed.")
 
 
-def fetch_and_save_dop(tile, tile_index, dop_output_dir, wcs_url, layer_name, img_width, img_height, target_gsd, layer_gsd):
+def fetch_and_save_dop(
+    tile,
+    tile_index,
+    dop_output_dir,
+    wcs_url,
+    layer_name,
+    img_width,
+    img_height,
+    target_gsd,
+    layer_gsd,
+):
     """
     Fetches and saves a DOP image for the given tile using a WCS GetCoverage request.
-    
+
     The request URL is built with parameters similar to:
       ?VERSION=2.0.1&SERVICE=wcs&REQUEST=GetCoverage&COVERAGEID=nw_dop&FORMAT=image/tiff
       &SUBSET=x(min,max)&SUBSET=y(min,max)&SCALEFACTOR=...
-      
+
     For example:
       https://www.wcs.nrw.de/geobasis/wcs_nw_dop?VERSION=2.0.1&SERVICE=wcs&REQUEST=GetCoverage&COVERAGEID=nw_dop&FORMAT=image/tiff
       &SUBSET=x(304000,304100)&SUBSET=y(5632000,5632100)&SCALEFACTOR=0.1
@@ -233,7 +244,9 @@ def generate_tiles(min_x, min_y, max_x, max_y, tile_width, tile_height):
     return tiles
 
 
-def filter_tiles_with_rtree(tiles, shapefile_path, tile_width, tile_height, img_width, img_height):
+def filter_tiles_with_rtree(
+    tiles, shapefile_path, tile_width, tile_height, img_width, img_height
+):
     """Filters tiles that FULLY contain at least one feature using an R-Tree index."""
     spatial_index = index.Index()
     shapes = []
@@ -250,11 +263,15 @@ def filter_tiles_with_rtree(tiles, shapefile_path, tile_width, tile_height, img_
         for i, shape in enumerate(shapes):
             if shape.shapeTypeName == "POLYGON":
                 x_coords, y_coords = zip(*shape.points)
-                spatial_index.insert(i, (min(x_coords), min(y_coords), max(x_coords), max(y_coords)))
+                spatial_index.insert(
+                    i, (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
+                )
 
     for tile in tiles:
         (tile_min_x, tile_min_y), (tile_max_x, tile_max_y) = tile
-        possible_matches = list(spatial_index.intersection((tile_min_x, tile_min_y, tile_max_x, tile_max_y)))
+        possible_matches = list(
+            spatial_index.intersection((tile_min_x, tile_min_y, tile_max_x, tile_max_y))
+        )
 
         if possible_matches:
             matches = []
@@ -265,26 +282,54 @@ def filter_tiles_with_rtree(tiles, shapefile_path, tile_width, tile_height, img_
 
                 # Transform shape to pixel coordinates
                 x_coords_pixel = [(x - tile_min_x) * to_pixel_width for x in x_coords]
-                y_coords_pixel = [(y - tile_min_y) * -to_pixel_height + img_height for y in y_coords]
+                y_coords_pixel = [
+                    (y - tile_min_y) * -to_pixel_height + img_height for y in y_coords
+                ]
 
                 shape_points = list(zip(x_coords_pixel, y_coords_pixel))
                 shape_centroid = Polygon(shape_points).centroid
-                matches.append({
-                    "points": shape_points,
-                    "centroid": (shape_centroid.x, shape_centroid.y),
-                    "class": matched_record["dachform"],
-                })
+                matches.append(
+                    {
+                        "points": shape_points,
+                        "centroid": (shape_centroid.x, shape_centroid.y),
+                        "class": matched_record["dachform"],
+                    }
+                )
                 match_count += 1
 
             out_list.append({"tile": tile, "contained_polygons": matches})
-    print(f"Found {match_count} roof polygons that are fully contained in {len(out_list)} tiles.")
+    print(
+        f"Found {match_count} roof polygons that are fully contained in {len(out_list)} tiles."
+    )
     return out_list
 
 
-def process_tile(index, tile_and_shapes, dop_output_dir, wcs_url, layer_name, img_width, img_height, target_gsd, layer_gsd, debug, debug_data):
+def process_tile(
+    index,
+    tile_and_shapes,
+    dop_output_dir,
+    wcs_url,
+    layer_name,
+    img_width,
+    img_height,
+    target_gsd,
+    layer_gsd,
+    debug,
+    debug_data,
+):
     """Fetches a DOP image for the tile and updates the dictionary."""
     tile = tile_and_shapes["tile"]
-    dop_name = fetch_and_save_dop(tile, index, dop_output_dir, wcs_url, layer_name, img_width, img_height, target_gsd, layer_gsd)
+    dop_name = fetch_and_save_dop(
+        tile,
+        index,
+        dop_output_dir,
+        wcs_url,
+        layer_name,
+        img_width,
+        img_height,
+        target_gsd,
+        layer_gsd,
+    )
     tile_and_shapes["dop_name"] = dop_name
 
     if debug:
@@ -310,7 +355,9 @@ def plot_tile_and_shapes(file_name, polygons, dop_output_dir, img_width, img_hei
 
     for polygon in polygons:
         points = polygon["points"]
-        polygon_patch = patches.Polygon(points, closed=True, edgecolor="red", facecolor="none", linewidth=2)
+        polygon_patch = patches.Polygon(
+            points, closed=True, edgecolor="red", facecolor="none", linewidth=2
+        )
         ax.add_patch(polygon_patch)
         centroid_x, centroid_y = polygon["centroid"]
         ax.plot(centroid_x, centroid_y, "bo", markersize=5, label="Centroid")
@@ -362,7 +409,9 @@ def main():
     if file_found:
         print(f"File containing 'AX_Gebaeude' extracted: {file_found}")
         print("Extracting roof shapes and converting to ESRI shapefile")
-        convert_gru_to_shapefile(file_found, ogr_output_shp, args.ogr_layer, args.ogr_srs, args.ogr_where)
+        convert_gru_to_shapefile(
+            file_found, ogr_output_shp, args.ogr_layer, args.ogr_srs, args.ogr_where
+        )
     else:
         print("No file containing 'AX_Gebaeude' was found.")
 
@@ -410,7 +459,9 @@ def main():
     # Plot debug images sequentially if DEBUG is enabled
     if DEBUG:
         for dop_name, polygons in debug_data:
-            plot_tile_and_shapes(dop_name, polygons, DOP_OUTPUT_DIR, args.img_width, args.img_height)
+            plot_tile_and_shapes(
+                dop_name, polygons, DOP_OUTPUT_DIR, args.img_width, args.img_height
+            )
 
     # Cleanup temporary files
     cleanup([GRU_DOWNLOAD_PATH, GRU_EXTRACT_PATH, OGR_OUTPUT])
