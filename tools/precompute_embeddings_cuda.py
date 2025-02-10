@@ -45,13 +45,15 @@ def process_images_for_device(image_list, device_id, dop_path, emb_path, checkpo
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process images using SAM with user-specified CUDA devices, dataset root, and checkpoint."
+        description="Process images using SAM with "
+        "user-specified CUDA devices, dataset root, and checkpoint."
     )
     parser.add_argument(
         "--cuda-devices",
         type=str,
         default="all",
-        help='Comma-separated list of CUDA device IDs to use (e.g. "0,1") or "all" to use all available devices.',
+        help='Comma-separated list of CUDA device IDs'
+         ' to use (e.g. "0,1") or "all" to use all available devices.',
     )
     parser.add_argument(
         "--dataset-root",
@@ -63,7 +65,8 @@ def main():
         "--checkpoint",
         type=str,
         default="sam_vit_h_4b8939.pth",
-        help="Path to the SAM checkpoint file. Defaults to the ViT-H model checkpoint (sam_vit_h_4b8939.pth).",
+        help="Path to the SAM checkpoint file. "
+        "Defaults to the ViT-H model checkpoint (sam_vit_h_4b8939.pth).",
     )
     args = parser.parse_args()
 
@@ -71,10 +74,10 @@ def main():
     download_checkpoint_if_needed(args.checkpoint)
 
     # Set dataset paths based on the provided dataset root
-    DATASET_ROOT = args.dataset_root
-    DOP_PATH = os.path.join(DATASET_ROOT, "dop_images")
-    EMB_PATH = os.path.join(DATASET_ROOT, "dop_embeddings")
-    os.makedirs(EMB_PATH, exist_ok=True)
+    dataset_root = args.dataset_root
+    dop_path = os.path.join(dataset_root, "dop_images")
+    emb_path = os.path.join(dataset_root, "dop_embeddings")
+    os.makedirs(emb_path, exist_ok=True)
 
     total_devices = torch.cuda.device_count()
     if total_devices == 0:
@@ -91,23 +94,26 @@ def main():
             devices_to_use = [int(x.strip()) for x in args.cuda_devices.split(",")]
         except Exception as e:
             raise ValueError(
-                "Invalid device IDs provided. Please provide a comma-separated list of integers, e.g., '0,1'."
+                "Invalid device IDs provided. "
+                "Please provide a comma-separated list of integers, e.g., '0,1'."
             ) from e
 
         # Validate provided device IDs
         for d in devices_to_use:
             if d < 0 or d >= total_devices:
                 raise ValueError(
-                    f"Device ID {d} is out of range. Available device IDs are 0 to {total_devices - 1}."
+                    f"Device ID {d} is out of range. "
+                    f"Available device IDs are 0 to {total_devices - 1}."
                 )
     print("Using CUDA devices:", devices_to_use)
 
     # List all images in the dataset directory
     try:
-        all_images = os.listdir(DOP_PATH)
+        all_images = os.listdir(dop_path)
     except FileNotFoundError:
         print(
-            f"Directory {DOP_PATH} not found. Please ensure the dataset root contains a 'dop_images' folder."
+            f"Directory {dop_path} not found. "
+            f"Please ensure the dataset root contains a 'dop_images' folder."
         )
         return
 
@@ -132,8 +138,8 @@ def main():
                         process_images_for_device,
                         image_list,
                         device_id,
-                        DOP_PATH,
-                        EMB_PATH,
+                        dop_path,
+                        emb_path,
                         args.checkpoint,
                     )
                 )

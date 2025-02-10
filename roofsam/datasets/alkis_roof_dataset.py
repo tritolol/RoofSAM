@@ -77,7 +77,7 @@ class AlkisRoofDataset(Dataset):
             raise ValueError("Image names and embedding names do not match")
 
     def load_metadata(self):
-        with open(self.metadata_path, "r") as f:
+        with open(self.metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
         return metadata
 
@@ -90,7 +90,7 @@ class AlkisRoofDataset(Dataset):
         polygons = []
         classes = []
         for tile in self.tiles:
-            if "contained_polygons" in tile:
+            if "contained_polygons" in tile and tile["dop_name"] is not None:
                 for poly in tile["contained_polygons"]:
                     # Get the numeric class code from the metadata.
                     class_code = poly["class"]
@@ -100,6 +100,7 @@ class AlkisRoofDataset(Dataset):
                     polygons.append(
                         {
                             "polygon": Polygon(poly["points"]),
+                            "center": Point(poly["centroid"]),
                             "embedding_key": tile["dop_name"].split(".")[0],
                             "class": class_name,
                         }
@@ -146,15 +147,18 @@ class AlkisRoofDataset(Dataset):
             0
         )  # remove batch dimension
 
-        # Sample points from within the polygon.
-        min_x, min_y, max_x, max_y = polygon.bounds
-        sampled_points = []
-        while len(sampled_points) < self.num_sampled_points:
-            random_point = Point(
-                random.uniform(min_x, max_x), random.uniform(min_y, max_y)
-            )
-            if polygon.contains(random_point):
-                sampled_points.append((random_point.x, random_point.y))
+        if self.num_sampled_points > 1:
+            # Sample points from within the polygon.
+            min_x, min_y, max_x, max_y = polygon.bounds
+            sampled_points = []
+            while len(sampled_points) < self.num_sampled_points:
+                random_point = Point(
+                    random.uniform(min_x, max_x), random.uniform(min_y, max_y)
+                )
+                if polygon.contains(random_point):
+                    sampled_points.append((random_point.x, random_point.y))
+        else:
+            sampled_points = [(polygon_data["center"].x, polygon_data["center"].y)]
 
         sampled_points_tensor = torch.tensor(sampled_points, dtype=torch.float32)
         class_tensor = torch.tensor(class_label, dtype=torch.long)
@@ -177,7 +181,8 @@ class AlkisRoofDataset(Dataset):
             train_ratio (float): Ratio of the dataset to use for training (default: 0.8).
             seed (int): Random seed for reproducibility.
             num_sampled_points (int): Number of points to sample from each polygon.
-            min_samples_threshold (int): Minimum samples required for a class before it is mapped to "other".
+            min_samples_threshold (int): Minimum samples required
+              for a class before it is mapped to "other".
 
         Returns:
             tuple: (train_dataset, test_dataset, num_classes, index_to_class, class_weights)

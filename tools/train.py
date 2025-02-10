@@ -1,94 +1,55 @@
 import os
+import argparse
+
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from tqdm import tqdm
-from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
 from sklearn.metrics import f1_score
 import numpy as np
-from typing import Iterable
 
-# Dataset directory
-DATASET_ROOT = "dataset"
+from utils import majority_vote, set_requires_grad
 
-# Number of epochs
-NUM_EPOCHS = 10
-
-# Learning rate
-LR = 1e-4
-
-# Directory to save checkpoints
-checkpoint_dir = "./checkpoints"
-os.makedirs(checkpoint_dir, exist_ok=True)
+from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
+from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
 
 
-def set_requires_grad(parameters: Iterable[nn.Parameter], requires_grad: bool):
-    """
-    Sets the `requires_grad` flag for all given PyTorch parameters.
+def main(args):
+    # Ensure the checkpoint directory exists
+    os.makedirs(args.checkpoint_dir, exist_ok=True)
 
-    Args:
-        parameters (Iterable[nn.Parameter]): The parameters to update.
-        requires_grad (bool): Whether to enable gradient computation.
-
-    Example:
-        >>> set_requires_grad(model.parameters(), False)
-    """
-    for param in parameters:
-        param.requires_grad = requires_grad
-
-
-def majority_vote(preds: torch.Tensor) -> torch.Tensor:
-    """
-    Computes the majority vote for each sample (each row of predictions).
-    Since torch.mode is not supported on MPS, we use NumPy to perform the computation.
-
-    Args:
-        preds (torch.Tensor): Tensor of shape [batch_size, num_points] containing class predictions.
-
-    Returns:
-        torch.Tensor: Tensor of shape [batch_size] with the majority vote for each sample.
-    """
-    preds_cpu = preds.cpu().numpy()  # shape: [batch_size, num_points]
-    majority = []
-    for sample in preds_cpu:
-        counts = np.bincount(sample)
-        majority.append(np.argmax(counts))
-    # Return the majority vote results as a tensor on the same device as the input
-    return torch.tensor(majority, device=preds.device)
-
-
-if __name__ == "__main__":
     # Get the train/test split from the dataset.
     # These parameters must match those used during training.
     train_dataset, test_dataset, num_classes, index_to_class, class_weights = (
         AlkisRoofDataset.get_train_test_split(
-            DATASET_ROOT, num_sampled_points=4, min_samples_threshold=100
+            args.dataset_root,
+            num_sampled_points=args.num_sampled_points,
+            min_samples_threshold=args.min_class_instances,
         )
     )
 
     # Create DataLoaders for training and testing
     train_loader = DataLoader(
         train_dataset,
-        batch_size=8,
-        num_workers=4,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
         persistent_workers=True,
         shuffle=True,
     )
     test_loader = DataLoader(
         test_dataset,
-        batch_size=8,
-        num_workers=4,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
         persistent_workers=True,
         shuffle=False,  # No shuffling for evaluation
     )
 
-    # Set the device (MPS or CUDA)
-    device = torch.device("mps")  # or "cuda" for NVIDIA GPUs
+    # Set the device (e.g., MPS or CUDA)
+    device = torch.device(args.device)
 
     # Build the model and load the SAM checkpoint
     model = build_roofsam_from_sam_vit_h_checkpoint(
-        num_classes=num_classes, sam_checkpoint="sam_vit_h_4b8939.pth"
+        num_classes=num_classes, sam_checkpoint=args.sam_checkpoint
     ).to(device)
 
     # Freeze the entire model and set it to evaluation mode
@@ -100,20 +61,20 @@ if __name__ == "__main__":
     set_requires_grad(model.mask_decoder.parameters(), True)
 
     # Initialize the Adam optimizer for the mask decoder
-    optimizer = optim.Adam(model.mask_decoder.parameters(), lr=LR)
+    optimizer = optim.Adam(model.mask_decoder.parameters(), lr=args.learning_rate)
 
     # Define the loss function
     loss_fn = nn.CrossEntropyLoss(weight=class_weights.to(device))
 
     best_macro_f1 = 0.0
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(args.num_epochs):
         # Set mask decoder to training mode
         model.mask_decoder.train()
         training_loss = 0.0
 
         # Training loop
         for batch in tqdm(
-            train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS} - Training"
+            train_loader, desc=f"Epoch {epoch+1}/{args.num_epochs} - Training"
         ):
             embeddings = batch[0].to(device)
             point_coords = batch[1].to(device)
@@ -146,7 +107,9 @@ if __name__ == "__main__":
             training_loss += loss.item()
 
         avg_training_loss = training_loss / len(train_loader)
-        print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], Training Loss: {avg_training_loss:.4f}")
+        print(
+            f"Epoch [{epoch+1}/{args.num_epochs}], Training Loss: {avg_training_loss:.4f}"
+        )
 
         # Validation loop
         model.mask_decoder.eval()  # Set model to evaluation mode
@@ -158,7 +121,7 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             for batch in tqdm(
-                test_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS} - Validation"
+                test_loader, desc=f"Epoch {epoch+1}/{args.num_epochs} - Validation"
             ):
                 embeddings = batch[0].to(device)
                 point_coords = batch[1].to(device)
@@ -182,7 +145,8 @@ if __name__ == "__main__":
                 loss = loss_fn(logits, targets)
                 validation_loss += loss.item()
 
-                # Compute predictions. Assuming logits shape is [batch_size, num_classes, num_points]
+                # Compute predictions. Assuming logits shape is
+                # [batch_size, num_classes, num_points]
                 preds = torch.argmax(logits, dim=1)  # shape: [batch_size, num_points]
 
                 # Compute majority vote per sample
@@ -195,7 +159,7 @@ if __name__ == "__main__":
 
         avg_validation_loss = validation_loss / len(test_loader)
         print(
-            f"Epoch [{epoch+1}/{NUM_EPOCHS}], Validation Loss: {avg_validation_loss:.4f}"
+            f"Epoch [{epoch+1}/{args.num_epochs}], Validation Loss: {avg_validation_loss:.4f}"
         )
 
         # Concatenate all majority predictions and targets from all batches
@@ -215,7 +179,74 @@ if __name__ == "__main__":
         if macro_f1 > best_macro_f1:
             best_macro_f1 = macro_f1
             checkpoint_path = os.path.join(
-                checkpoint_dir, f"mask_decoder_epoch{epoch+1}_mf1_{macro_f1:.4f}.pt"
+                args.checkpoint_dir,
+                f"mask_decoder_epoch{epoch+1}_mf1_{macro_f1:.4f}.pt",
             )
             torch.save(model.mask_decoder.state_dict(), checkpoint_path)
             print(f"New best model found and saved at {checkpoint_path}")
+
+if __name__ == "__main__":
+    # Define command-line arguments for all the constants
+    parser = argparse.ArgumentParser(description="Train the RoofSAM decoder.")
+    parser.add_argument(
+        "--dataset_root",
+        type=str,
+        default="dataset",
+        help="Path to the dataset directory.",
+    )
+    parser.add_argument(
+        "--num_epochs",
+        type=int,
+        default=200,
+        help="Number of training epochs.",
+    )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=1e-4,
+        help="Learning rate for the Adam optimizer.",
+    )
+    parser.add_argument(
+        "--num_sampled_points",
+        type=int,
+        default=4,
+        help="Number of points to sample per instance.",
+    )
+    parser.add_argument(
+        "--min_class_instances",
+        type=int,
+        default=100,
+        help="Minimum number of instances per class required.",
+    )
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        default="./checkpoints",
+        help="Directory to save model checkpoints.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Batch size for the DataLoader.",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker processes for the DataLoader.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device to use for training (e.g., 'mps' or 'cuda').",
+    )
+    parser.add_argument(
+        "--sam_checkpoint",
+        type=str,
+        default="sam_vit_h_4b8939.pth",
+        help="Path to the SAM checkpoint file.",
+    )
+    my_args = parser.parse_args()
+    main(my_args)

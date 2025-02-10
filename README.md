@@ -36,8 +36,67 @@ cd fpseg; pip install -e .[all]
 
 ## Dataset
 
+In the paper, a slightly different dataset was used, with images originating from the local municipality of Wuppertal, Germany, which is not publicly available.
 The dataset is entirely based on data from the publicly available [ geo data portal of the state of North-Rhine Westphalia, Germany ](https://www.opengeodata.nrw.de/produkte/).
-In the paper, a slightly different dataset was used, with images originating from the local municipality of Wuppertal, Germany
+
+Build dataset using docker
+```
+docker build -t dataset_builder tools/build_alkis_dataset
+```
+
+Run the dataset script inside a new docker container using the image built above. This command will store the dataset in a "dataset" folder inside the repo directory.
+```
+mkdir dataset
+docker run --rm --mount type=bind,src=./dataset,dst=/dataset dataset_builder /venv/bin/python /app/build_alkis_roof_dataset_wcs.py --output-dir /dataset
+```
+
+For more options on dataset creation, run the script with `--help`.
+```
+usage: build_alkis_roof_dataset_wcs.py [-h] [--output-dir OUTPUT_DIR]
+                                       [--wcs-url WCS_URL]
+                                       [--layer-name LAYER_NAME]
+                                       [--wcs-workers WCS_WORKERS]
+                                       [--layer-gsd LAYER_GSD]
+                                       [--target-gsd TARGET_GSD]
+                                       [--img-width IMG_WIDTH]
+                                       [--img-height IMG_HEIGHT]
+                                       [--gru-url GRU_URL]
+                                       [--ogr-layer OGR_LAYER]
+                                       [--ogr-srs OGR_SRS]
+                                       [--ogr-where OGR_WHERE] [--debug]
+
+Download and process DOP images and roof polygon data using a WCS service.
+
+options:
+  -h, --help            show this help message and exit
+  --output-dir OUTPUT_DIR
+                        Directory to store outputs. Default is 'dataset'.
+  --wcs-url WCS_URL     WCS service URL for DOP data. Default is
+                        https://www.wcs.nrw.de/geobasis/wcs_nw_dop
+  --layer-name LAYER_NAME
+                        WCS layer name (coverageId) to request. Default is
+                        'nw_dop'.
+  --wcs-workers WCS_WORKERS
+                        Number of worker threads for fetching WCS tiles.
+  --layer-gsd LAYER_GSD
+                        Native ground sampling distance (m/pixel) of the DOP
+                        layer. For example, 0.1.
+  --target-gsd TARGET_GSD
+                        Desired ground sampling distance (m/pixel) for
+                        processing tiles. For example, 1.0.
+  --img-width IMG_WIDTH
+                        Image width in pixels. Default is 1024.
+  --img-height IMG_HEIGHT
+                        Image height in pixels. Default is 1024.
+  --gru-url GRU_URL     URL to download GRU data.
+  --ogr-layer OGR_LAYER
+                        OGR layer name to extract from the GRU data.
+  --ogr-srs OGR_SRS     Spatial reference system to use with ogr2ogr.
+  --ogr-where OGR_WHERE
+                        SQL WHERE clause to filter features during ogr2ogr
+                        conversion.
+  --debug               If set, enables debug mode with plotting.
+  ```
 
 ## Model checkpoints
 

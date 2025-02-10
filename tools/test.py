@@ -1,5 +1,7 @@
 import os
 import sys
+import argparse
+
 import torch
 import numpy as np
 from torch import nn
@@ -7,53 +9,44 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.metrics import f1_score
 
+from utils import majority_vote
+
 from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
 
-# Set the dataset root and device
-DATASET_ROOT = "dataset"
-device = torch.device("mps")  # or "cuda" if using NVIDIA GPUs
 
-def majority_vote(preds: torch.Tensor) -> torch.Tensor:
-    """
-    Computes the majority vote for each sample (each row of predictions).
-    Since torch.mode is not supported on MPS, we use NumPy.
-    """
-    preds_cpu = preds.cpu().numpy()  # shape: [batch_size, num_points]
-    majority = []
-    for sample in preds_cpu:
-        counts = np.bincount(sample)
-        majority.append(np.argmax(counts))
-    # Return a tensor with the majority vote for each sample on the original device
-    return torch.tensor(majority, device=preds.device)
+def main(args):
+    # Set the device using the command-line argument
+    device = torch.device(args.device)
 
-def main(checkpoint_path):
     # Create the dataset and test split.
     # These parameters must match those used during training.
     _, test_dataset, num_classes, index_to_class, class_weights = (
         AlkisRoofDataset.get_train_test_split(
-            DATASET_ROOT, num_sampled_points=4, min_samples_threshold=100
+            args.dataset_root,
+            num_sampled_points=args.num_sampled_points,
+            min_samples_threshold=args.min_samples_threshold,
         )
     )
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=8,
-        num_workers=4,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
         persistent_workers=True,
         shuffle=False,  # no shuffling for evaluation
     )
 
-    # Check if checkpoint exists
-    if not os.path.exists(checkpoint_path):
-        print(f"Checkpoint file not found: {checkpoint_path}")
+    # Check if the checkpoint file exists.
+    if not os.path.exists(args.checkpoint_path):
+        print(f"Checkpoint file not found: {args.checkpoint_path}")
         sys.exit(1)
 
-    # Build the model. Ensure that the num_classes and checkpoint used are consistent.
+    # Build the model.
     model = build_roofsam_from_sam_vit_h_checkpoint(
         num_classes=num_classes,
-        sam_checkpoint="sam_vit_h_4b8939.pth",
-        roof_sam_mask_decoder_checkpoint=checkpoint_path,
+        sam_checkpoint=args.sam_checkpoint,
+        roof_sam_mask_decoder_checkpoint=args.checkpoint_path,
     ).to(device)
 
     # Set the model to evaluation mode.
@@ -118,9 +111,58 @@ def main(checkpoint_path):
         print(f"  {class_name}: {f1:.4f}")
     print(f"\nMean F1 Score (macro-average): {f1_mean:.4f}")
 
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python test.py <checkpoint_path>")
-        sys.exit(1)
-    checkpoint_path = sys.argv[1]
-    main(checkpoint_path)
+    parser = argparse.ArgumentParser(
+        description="Test the RoofSAM mask decoder model using a specified checkpoint."
+    )
+    parser.add_argument(
+        "checkpoint_path",
+        type=str,
+        help="Path to the mask decoder checkpoint file.",
+    )
+    parser.add_argument(
+        "--dataset_root",
+        type=str,
+        default="dataset",
+        help="Path to the dataset directory.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device to run inference on (e.g., 'mps' or 'cuda').",
+    )
+    parser.add_argument(
+        "--num_sampled_points",
+        type=int,
+        default=4,
+        help="Number of sampled points to use.",
+    )
+    parser.add_argument(
+        "--min_samples_threshold",
+        type=int,
+        default=100,
+        help="Minimum number of samples required per class.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Batch size for testing.",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker processes for the DataLoader.",
+    )
+    parser.add_argument(
+        "--sam_checkpoint",
+        type=str,
+        default="sam_vit_h_4b8939.pth",
+        help="Path to the SAM checkpoint file.",
+    )
+
+    my_args = parser.parse_args()
+    main(my_args)

@@ -2,7 +2,6 @@ from segment_anything.modeling.mask_decoder import MaskDecoder
 import torch
 from torch import nn
 import torch.nn.functional as F
-from typing import List, Tuple, Type
 
 
 class ClassDecoder(MaskDecoder):

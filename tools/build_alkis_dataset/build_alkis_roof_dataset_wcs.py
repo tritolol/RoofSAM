@@ -402,7 +402,7 @@ def main():
 
     # Save metadata as JSON
     metadata_path = os.path.join(OUTPUT_DIR, "metadata.json")
-    with open(metadata_path, "w") as fp:
+    with open(metadata_path, "w", encoding="utf-8") as fp:
         json.dump(filtered_shapes, fp)
     print(f"Metadata saved to {metadata_path}")
 
