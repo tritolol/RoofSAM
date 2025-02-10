@@ -19,7 +19,7 @@ DEBUG = False
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Download and process DOP images and roof polygon data using a WCS service."
+        description="Download and process aerial ortho images and roof polygon data using a WCS service."
     )
     parser.add_argument(
         "--output-dir",
@@ -31,7 +31,7 @@ def parse_args():
         "--wcs-url",
         type=str,
         default="https://www.wcs.nrw.de/geobasis/wcs_nw_dop",
-        help="WCS service URL for DOP data. Default is https://www.wcs.nrw.de/geobasis/wcs_nw_dop",
+        help="WCS service URL for digital orthorectified photo (DOP) data. Default is https://www.wcs.nrw.de/geobasis/wcs_nw_dop",
     )
     parser.add_argument(
         "--layer-name",
@@ -55,8 +55,8 @@ def parse_args():
     parser.add_argument(
         "--target-gsd",
         type=float,
-        default=0.1,
-        help="Desired ground sampling distance (m/pixel) for processing tiles. For example, 1.0.",
+        default=0.2,
+        help="Desired ground sampling distance (m/pixel) for processing tiles. For example, 0.2.",
     )
     parser.add_argument(
         "--img-width",

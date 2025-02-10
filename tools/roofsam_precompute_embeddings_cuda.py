@@ -12,6 +12,34 @@ from segment_anything.build_sam import build_sam_vit_h
 from segment_anything.predictor import SamPredictor
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Process images using SAM with "
+        "user-specified CUDA devices, dataset root, and checkpoint."
+    )
+    parser.add_argument(
+        "--cuda-devices",
+        type=str,
+        default="all",
+        help="Comma-separated list of CUDA device IDs"
+        ' to use (e.g. "0,1") or "all" to use all available devices.',
+    )
+    parser.add_argument(
+        "--dataset-root",
+        type=str,
+        default="dataset",
+        help="Path to the dataset root directory. Assumes dop_images folder within.",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="sam_vit_h_4b8939.pth",
+        help="Path to the SAM checkpoint file. "
+        "Defaults to the ViT-H model checkpoint (sam_vit_h_4b8939.pth).",
+    )
+    return parser.parse_args()
+
+
 def download_checkpoint_if_needed(checkpoint):
     if not os.path.exists(checkpoint):
         print(f"Downloading checkpoint {checkpoint}...")
@@ -45,31 +73,7 @@ def process_images_for_device(image_list, device_id, dop_path, emb_path, checkpo
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Process images using SAM with "
-        "user-specified CUDA devices, dataset root, and checkpoint."
-    )
-    parser.add_argument(
-        "--cuda-devices",
-        type=str,
-        default="all",
-        help="Comma-separated list of CUDA device IDs"
-        ' to use (e.g. "0,1") or "all" to use all available devices.',
-    )
-    parser.add_argument(
-        "--dataset-root",
-        type=str,
-        default="dataset",
-        help="Path to the dataset root directory. Assumes dop_images folder within.",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default="sam_vit_h_4b8939.pth",
-        help="Path to the SAM checkpoint file. "
-        "Defaults to the ViT-H model checkpoint (sam_vit_h_4b8939.pth).",
-    )
-    args = parser.parse_args()
+    args = parse_args()
 
     # Download the checkpoint if it does not exist.
     download_checkpoint_if_needed(args.checkpoint)

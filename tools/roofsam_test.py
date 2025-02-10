@@ -16,7 +16,63 @@ from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
 
 
-def main(args):
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Test the RoofSAM mask decoder model using a specified checkpoint."
+    )
+    parser.add_argument(
+        "checkpoint_path",
+        type=str,
+        help="Path to the mask decoder checkpoint file.",
+    )
+    parser.add_argument(
+        "--dataset_root",
+        type=str,
+        default="dataset",
+        help="Path to the dataset directory.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device to run inference on (e.g., 'mps' or 'cuda').",
+    )
+    parser.add_argument(
+        "--num_sampled_points",
+        type=int,
+        default=4,
+        help="Number of sampled points to use.",
+    )
+    parser.add_argument(
+        "--min_samples_threshold",
+        type=int,
+        default=100,
+        help="Minimum number of samples required per class.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Batch size for testing.",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker processes for the DataLoader.",
+    )
+    parser.add_argument(
+        "--sam_checkpoint",
+        type=str,
+        default="sam_vit_h_4b8939.pth",
+        help="Path to the SAM checkpoint file.",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
     # Set the device using the command-line argument
     device = torch.device(args.device)
 
@@ -114,56 +170,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Test the RoofSAM mask decoder model using a specified checkpoint."
-    )
-    parser.add_argument(
-        "checkpoint_path",
-        type=str,
-        help="Path to the mask decoder checkpoint file.",
-    )
-    parser.add_argument(
-        "--dataset_root",
-        type=str,
-        default="dataset",
-        help="Path to the dataset directory.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cuda",
-        help="Device to run inference on (e.g., 'mps' or 'cuda').",
-    )
-    parser.add_argument(
-        "--num_sampled_points",
-        type=int,
-        default=4,
-        help="Number of sampled points to use.",
-    )
-    parser.add_argument(
-        "--min_samples_threshold",
-        type=int,
-        default=100,
-        help="Minimum number of samples required per class.",
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=128,
-        help="Batch size for testing.",
-    )
-    parser.add_argument(
-        "--num_workers",
-        type=int,
-        default=4,
-        help="Number of worker processes for the DataLoader.",
-    )
-    parser.add_argument(
-        "--sam_checkpoint",
-        type=str,
-        default="sam_vit_h_4b8939.pth",
-        help="Path to the SAM checkpoint file.",
-    )
-
-    my_args = parser.parse_args()
-    main(my_args)
+    main()

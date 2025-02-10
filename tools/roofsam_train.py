@@ -15,7 +15,75 @@ from roofsam.datasets.alkis_roof_dataset import AlkisRoofDataset
 from roofsam.build_roofsam import build_roofsam_from_sam_vit_h_checkpoint
 
 
-def main(args):
+def parse_args():
+    # Define command-line arguments for all the constants
+    parser = argparse.ArgumentParser(description="Train the RoofSAM decoder.")
+    parser.add_argument(
+        "--dataset_root",
+        type=str,
+        default="dataset",
+        help="Path to the dataset directory.",
+    )
+    parser.add_argument(
+        "--num_epochs",
+        type=int,
+        default=200,
+        help="Number of training epochs.",
+    )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=1e-4,
+        help="Learning rate for the Adam optimizer.",
+    )
+    parser.add_argument(
+        "--num_sampled_points",
+        type=int,
+        default=4,
+        help="Number of points to sample per instance.",
+    )
+    parser.add_argument(
+        "--min_class_instances",
+        type=int,
+        default=100,
+        help="Minimum number of instances per class required.",
+    )
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        default="./checkpoints",
+        help="Directory to save model checkpoints.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Batch size for the DataLoader.",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker processes for the DataLoader.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device to use for training (e.g., 'mps' or 'cuda').",
+    )
+    parser.add_argument(
+        "--sam_checkpoint",
+        type=str,
+        default="sam_vit_h_4b8939.pth",
+        help="Path to the SAM checkpoint file.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
     # Ensure the checkpoint directory exists
     os.makedirs(args.checkpoint_dir, exist_ok=True)
 
@@ -188,67 +256,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # Define command-line arguments for all the constants
-    parser = argparse.ArgumentParser(description="Train the RoofSAM decoder.")
-    parser.add_argument(
-        "--dataset_root",
-        type=str,
-        default="dataset",
-        help="Path to the dataset directory.",
-    )
-    parser.add_argument(
-        "--num_epochs",
-        type=int,
-        default=200,
-        help="Number of training epochs.",
-    )
-    parser.add_argument(
-        "--learning_rate",
-        type=float,
-        default=1e-4,
-        help="Learning rate for the Adam optimizer.",
-    )
-    parser.add_argument(
-        "--num_sampled_points",
-        type=int,
-        default=4,
-        help="Number of points to sample per instance.",
-    )
-    parser.add_argument(
-        "--min_class_instances",
-        type=int,
-        default=100,
-        help="Minimum number of instances per class required.",
-    )
-    parser.add_argument(
-        "--checkpoint_dir",
-        type=str,
-        default="./checkpoints",
-        help="Directory to save model checkpoints.",
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=128,
-        help="Batch size for the DataLoader.",
-    )
-    parser.add_argument(
-        "--num_workers",
-        type=int,
-        default=4,
-        help="Number of worker processes for the DataLoader.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cuda",
-        help="Device to use for training (e.g., 'mps' or 'cuda').",
-    )
-    parser.add_argument(
-        "--sam_checkpoint",
-        type=str,
-        default="sam_vit_h_4b8939.pth",
-        help="Path to the SAM checkpoint file.",
-    )
-    my_args = parser.parse_args()
-    main(my_args)
+    main()
