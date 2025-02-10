@@ -1,3 +1,7 @@
+"""
+Derived from segment_anything/modeling/mask_decoder.py
+"""
+
 from segment_anything.modeling.mask_decoder import MaskDecoder
 import torch
 from torch import nn

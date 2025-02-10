@@ -1,3 +1,7 @@
+"""
+Derived from segment_anything/modeling/sam.py
+"""
+
 from typing import Any, Dict
 import torch
 from torch import nn

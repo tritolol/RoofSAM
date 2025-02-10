@@ -46,7 +46,7 @@ def download_checkpoint_if_needed(checkpoint):
     """
     Download the checkpoint from the remote URL if it doesn't exist locally.
     Uses the `requests` library for downloading.
-    
+
     Args:
         checkpoint (str): The filename of the checkpoint.
     """
@@ -56,9 +56,9 @@ def download_checkpoint_if_needed(checkpoint):
 
         response = requests.get(url, stream=True, timeout=10)
         response.raise_for_status()  # Raise an HTTPError for bad responses (e.g., 404)
-        
+
         # Write the downloaded content to the checkpoint file in chunks.
-        with open(checkpoint, 'wb') as f:
+        with open(checkpoint, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)

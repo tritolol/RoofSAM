@@ -1,3 +1,7 @@
+"""
+Derived from segment_anything/build_sam.py
+"""
+
 from functools import partial
 import hashlib
 import io
