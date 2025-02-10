@@ -1,5 +1,7 @@
 from functools import partial
 import torch
+import hashlib
+
 from segment_anything.modeling import (
     ImageEncoderViT,
     PromptEncoder,
@@ -9,9 +11,36 @@ from roofsam.modeling.roofsam import RoofSam
 from roofsam.modeling.class_decoder import ClassDecoder
 
 
+# The actual expected SHA256 hash of the sam_vit_h_4b8939.pth file.
+EXPECTED_SAM_VIT_H_CHECKPOINT_HASH = (
+    "a7bf3b02f3ebf1267aba913ff637d9a2d5c33d3173bb679e46d9f338c26f262e"
+)
+
+
+def compute_file_hash(filepath, hash_algo="sha256"):
+    """
+    Computes the hash of a file using the specified hash algorithm.
+    """
+    hash_func = hashlib.new(hash_algo)
+    with open(filepath, "rb") as f:
+        for block in iter(lambda: f.read(4096), b""):
+            hash_func.update(block)
+    return hash_func.hexdigest()
+
+
 def build_roofsam_from_sam_vit_h_checkpoint(
     num_classes, sam_checkpoint, roof_sam_mask_decoder_checkpoint=None
 ):
+    # Compute and check the hash for the sam_checkpoint file.
+    checkpoint_hash = compute_file_hash(sam_checkpoint)
+    if checkpoint_hash != EXPECTED_SAM_VIT_H_CHECKPOINT_HASH:
+        raise ValueError(
+            f"Invalid sam_checkpoint hash: {checkpoint_hash}. "
+            f"Expected: {EXPECTED_SAM_VIT_H_CHECKPOINT_HASH}. "
+            f"Make sure to load the sam_vit_h_4b8939.pth checkpoint."
+        )
+
+    # Build the RoofSAM model using the provided sam_checkpoint.
     roofsam = _build_roofsam(
         encoder_embed_dim=1280,
         encoder_depth=32,
