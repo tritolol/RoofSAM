@@ -1,173 +1,139 @@
+
 # RoofSAM: Adapting the Segment Anything Model to Rooftop Classification in Aerial Images
 
-**[ASILOMAR Conference on Signals, Systems, and Computers 2024 Paper (TBA)](https://google.com)**
+**[ASILOMAR Conference on Signals, Systems, and Computers 2024 Paper](#)**
 
-RoofSAM is an adaptation of the image segmentation model [SAM](https://github.com/facebookresearch/segment-anything) tailored towards **classifying roof shapes in aerial images**.
-
-Based on predefined building footprint polygons, RoofSAM uses point sampling to provide location cues to the adapted mask decoder. This mask decoder processes the output prompt tokens into a point wise roof shape class distribution. The final roof class predictions are obtained via majority voting over all point classes.
+RoofSAM adapts the powerful [Segment Anything Model (SAM)](https://github.com/facebookresearch/segment-anything) for the specialized task of classifying rooftop shapes in aerial imagery. By leveraging predefined building footprint polygons, RoofSAM uses point sampling to guide an adapted mask decoder, which then produces a point-wise roof shape class distribution. Final roof classifications are determined by majority voting over the sampled points.
 
 <p align="center">
-    <img src="assets/roofsam.png" alt="drawing" width="700"/>
+  <img src="assets/roofsam.png" alt="RoofSAM Architecture" width="700"/>
 </p>
 
-The paper contains experiments regarding the point sampling strategy and the number of points to sample per roof instance.
+The accompanying paper presents experiments on point sampling strategies and investigates the effect of varying the number of sampling points per roof instance.
+
+---
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Building the Dataset](#building-the-dataset)
+- [Model Checkpoints](#model-checkpoints)
+- [Tools](#tools)
+- [License](#license)
+- [Citing RoofSAM](#citing-roofsam)
+- [Acknowledgements](#acknowledgements)
+
+---
 
 ## Installation
 
-The code requires (was built with) `python>=3.10.8`, as well as `pytorch>=2.0.1` and `torchvision>=0.15.2`. Please follow the instructions [here](https://pytorch.org/get-started/locally/) to install both PyTorch and TorchVision dependencies. Installing both PyTorch and TorchVision with CUDA support is necessary.
+RoofSAM requires:
+- **Python**: version `>=3.10.8`
+- **PyTorch**: version `>=2.0.1`
+- **TorchVision**: version `>=0.15.2`
 
-Install FPSeg:
+*Note:* For optimal performance, install PyTorch and TorchVision with CUDA support. Follow the [official PyTorch installation instructions](https://pytorch.org/get-started/locally/) to set up your environment.
 
-```
-pip install git+https://github.com/JanKrabbe/FPSeg.git
-```
+### Installing RoofSAM
 
-or clone the repository locally and install with
+You can install RoofSAM directly from GitHub:
 
-```
-git clone git@github.com:JanKrabbe/FPSeg.git
-cd fpseg; pip install -e .
-```
-
-For using the TensorRT optimization additional dependencies are required that can be installed with:
-```
-cd fpseg; pip install -e .[all]
+```bash
+pip install git+https://github.com/tritolol/RoofSAM
 ```
 
-## Dataset
-
-In the paper, a slightly different dataset was used, with images originating from the local municipality of Wuppertal, Germany, which is not publicly available.
-The dataset is entirely based on data from the publicly available [ geo data portal of the state of North-Rhine Westphalia, Germany ](https://www.opengeodata.nrw.de/produkte/).
-
-Build dataset using docker
+Or, to install locally:
+```bash
+git clone git@github.com:tritolol/RoofSAM.git
+cd roofsam
+pip install -e .
 ```
-docker build -t dataset_builder tools/build_alkis_dataset
+To include all optional dependencies (useful if you plan to build the dataset without Docker), run:
+```bash
+cd roofsam
+pip install -e .[all]
+```
+Note: Ensure that wget, unzip, and ogr2ogr (from GDAL) are installed and available in your system PATH.
+
+## Building the Dataset
+
+The experiments in the paper used a proprietary dataset from Wuppertal, Germany. To facilitate reproducibility, we provide a script that builds a comparable dataset using aerial imagery from the publicly available [ North-Rhine Westphalia geo data portal ](https://www.opengeodata.nrw.de/produkte/). This dataset offers imagery at resolutions up to 10cm/pixel—matching the quality and resolution used in the paper.
+
+The dataset creation script:
+- Downloads building cadastre data.
+- Filters for roof categories.
+- Queries the [Web Coverage Service (WCS)](https://en.wikipedia.org/wiki/Web_Coverage_Service) for aerial images at specified locations.
+
+Since the script relies on some uncommon system libraries (e.g., GDAL), we provide a Docker image to simplify the setup.
+
+### Building the Dataset with Docker
+1. Create a Dataset Directory:
+    ```bash
+    mkdir dataset
+    ```
+
+2. Choose One of the Following Methods:
+    #### Method 1: Use the Pre-built Docker Hub Image
+    Run the container with the pre-built image tritolol/roofsam-dataset:
+    ```bash
+    docker run --rm --mount type=bind,src=./dataset,dst=/dataset tritolol/roofsam-dataset /venv/bin/python /app/roofsam_build_alkis_roof_dataset_wcs.py --output-dir /dataset
+    ```
+    #### Method 2: Build the Docker Image Locally
+    Build the Docker image:
+    ```bash
+    docker build -t dataset_builder tools/build_alkis_dataset
+    ```
+    ```bash
+    docker run --rm --mount type=bind,src=./dataset,dst=/dataset dataset_builder /venv/bin/python /app/roofsam_build_alkis_roof_dataset_wcs.py --output-dir /dataset
+    ```
+
+For additional configuration options, you can view the help message:
+```bash
+docker run --rm dataset_builder /venv/bin/python /app/roofsam_build_alkis_roof_dataset_wcs.py --help
 ```
 
-Run the dataset script inside a new docker container using the image built above. This command will store the dataset in a "dataset" folder inside the repo directory.
-```
-mkdir dataset
-docker run --rm --mount type=bind,src=./dataset,dst=/dataset dataset_builder /venv/bin/python /app/build_alkis_roof_dataset_wcs.py --output-dir /dataset
-```
+## Model Checkpoints
+RoofSAM is comprised of two key components:
 
-For more options on dataset creation, run the script with `--help`.
+1. *SAM Image Encoder*:
+    The encoder weights can be downloaded from the [SAM repository](https://github.com/facebookresearch/segment-anything#model-checkpoints). These weights are automatically downloaded when running the precomputation script.
+2. *Adapted Mask Decoder*:
+    Pre-trained weights for the mask decoder are available in the checkpoints folder. For example, the checkpoint decoder_wuppertal_0.2.pt was trained using data from Wuppertal with a ground sampling resolution of 0.2m/pixel and 4 sampling points.
+
+## Tools
+The repository provides several command-line tools located in the `tools/` directory. These scripts are installed to your PATH during setup and can be configured via command-line arguments (use `-h` for help).
+
+- Embedding Precomputation:
+    roofsam_precompute_embeddings_cuda.py
+
+    Description: Precompute image embeddings using the SAM image encoder across one or multiple CUDA devices. These embeddings are required for both training and testing.
+- Training:
+    roofsam_train.py
+
+    Description: Train the RoofSAM model using the provided dataset. Requires precomputed image embeddings.
+- Testing:
+    test.py
+
+    Description: Evaluate a trained model. Also requires precomputed image embeddings.
+
+Usage example to see all available options for a tool:
+```bash
+roofsam_train.py -h
 ```
-usage: build_alkis_roof_dataset_wcs.py [-h] [--output-dir OUTPUT_DIR]
-                                       [--wcs-url WCS_URL]
-                                       [--layer-name LAYER_NAME]
-                                       [--wcs-workers WCS_WORKERS]
-                                       [--layer-gsd LAYER_GSD]
-                                       [--target-gsd TARGET_GSD]
-                                       [--img-width IMG_WIDTH]
-                                       [--img-height IMG_HEIGHT]
-                                       [--gru-url GRU_URL]
-                                       [--ogr-layer OGR_LAYER]
-                                       [--ogr-srs OGR_SRS]
-                                       [--ogr-where OGR_WHERE] [--debug]
-
-Download and process DOP images and roof polygon data using a WCS service.
-
-options:
-  -h, --help            show this help message and exit
-  --output-dir OUTPUT_DIR
-                        Directory to store outputs. Default is 'dataset'.
-  --wcs-url WCS_URL     WCS service URL for DOP data. Default is
-                        https://www.wcs.nrw.de/geobasis/wcs_nw_dop
-  --layer-name LAYER_NAME
-                        WCS layer name (coverageId) to request. Default is
-                        'nw_dop'.
-  --wcs-workers WCS_WORKERS
-                        Number of worker threads for fetching WCS tiles.
-  --layer-gsd LAYER_GSD
-                        Native ground sampling distance (m/pixel) of the DOP
-                        layer. For example, 0.1.
-  --target-gsd TARGET_GSD
-                        Desired ground sampling distance (m/pixel) for
-                        processing tiles. For example, 1.0.
-  --img-width IMG_WIDTH
-                        Image width in pixels. Default is 1024.
-  --img-height IMG_HEIGHT
-                        Image height in pixels. Default is 1024.
-  --gru-url GRU_URL     URL to download GRU data.
-  --ogr-layer OGR_LAYER
-                        OGR layer name to extract from the GRU data.
-  --ogr-srs OGR_SRS     Spatial reference system to use with ogr2ogr.
-  --ogr-where OGR_WHERE
-                        SQL WHERE clause to filter features during ogr2ogr
-                        conversion.
-  --debug               If set, enables debug mode with plotting.
-  ```
-
-## Model checkpoints
-
-Pretrained FPSeg versions using the MobileSAM image encoder are provided in the `weights/` folder. For using the SAM image encoder obtain a SAM checkpoint from the [SAM repository ](https://github.com/facebookresearch/segment-anything#model-checkpoints) and run the train tool (explained below).
-
-## Tools 
-
-The following scripts are provided in the `tools/` folder. Every script can be configured with a corresponding file in the `configs/` folder.
-
-### Embedding precomputation
-```
-python tools/embedding_precomputation.py
-```
-This script can be used to precompute image embeddings with the SAM or MobileSAM image encoder. Precomputed embeddings are needed to use the train or eval script.
-
-### Train
-```
-python tools/train.py
-```
-Can be used to train the FPSeg model i.e. tuning the prompt tokens and possibly finetuning the mask decoder (not done in the paper). When using the default config file, train logs and the weights (checkpoint) of the epoch with the highest test mIoU will be saved to `output/train/`. Precomputed image embeddings are needed to perform the training. Make sure that the image embeddings are precomputed with the image encoder you want to use.
-
-### Encoder Distillation
-```
-python tools/encoder_distillation.py
-```
-Performs further knowledge distillation with the MobileSAM image encoder as student model and SAM image encoder as teacher model on the cityscapes dataset. When using the default config file, train logs and the weights (checkpoint) of the epoch with the lowest test MSE will be saved to `output/distill/`. Precomputed SAM image embeddings are needed to perform the distillation.
-
-### Eval
-```
-python tools/eval.py
-```
-Evaluates a trained FPSeg model (possibly the TensorRT optimization). Precomputed image embeddings are needed to perform the evaluation. Make sure that the image embeddings are precomputed with the image encoder you want to use.
-
-### Benchmark
-```
-python tools/benchmark.py
-```
-Determines inference time for the FPSeg model provided in the corresponding config file.
-
-### ONNX export
-```
-python tools/onnx_export.py
-```
-Exports FPSeg model to ONNX format, which is needed to deploy the TensorRT model on the NVIDIA Jetson Xavier.
-
-### Build TensorRT engine
-```
-python tools/build_tensorrt_engine.py
-```
-Builds the TensorRT engine from an ONNX model. Must be executed on the device the model is supposed to be deployed on.
-
-
-## Evaluation on NVIDIA Jetson Xavier
-
-The experiments in the paper were carried out on the NVIDIA Jetson Xavier NX 16 GB module. To perform tests on the model, it is necessary to set up NVIDIA Jetpack SDK 5.1.2 and TensorRT 8.5.2.2 on the module. The "Build TensorRT engine" tool must then be run on the module, after which inference times can be obtained with the "Benchmark" tool.
 
 ## License
 
 The repository is licensed under the [Apache 2.0 license](LICENSE).
 
-## Citing FPSeg
+## Citing RoofSAM
 
 ```bibtex
-@inproceedings{krabbe2024fpseg,
-  title={FPSeg: Flexible Promptable Semantic Segmentation for Edge Devices},
-  author={Krabbe, Jan-Christoph and Bauer, Adrian and Kollek, Kevin and Meusener, Jan-Hendrik and Kummert, Anton},
-  booktitle={2024 IEEE International Symposium on Circuits and Systems (ISCAS)},
-  year={2024},
-  organization={IEEE}
+@misc{TBA,
+  title={RoofSAM: Adapting the Segment Anything Model to Rooftop Classification in Aerial Images},
+  note={To appear in ASILOMAR Conference on Signals, Systems, and Computers 2024}
 }
 ```
+*Note*: Citation details will be updated upon publication.
 
 ## Acknowledgements
 
@@ -181,21 +147,6 @@ The repository is licensed under the [Apache 2.0 license](LICENSE).
 title={Segment Anything}, 
 author={Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao, Hanzi and Rolland, Chloe and Gustafson, Laura and Xiao, Tete and Whitehead, Spencer and Berg, Alexander C. and Lo, Wan-Yen and Doll{\'a}r, Piotr and Girshick, Ross},
 journal={arXiv:2304.02643},
-year={2023}
-}
-```
-</details>
-
-<details>
-    <summary>
-        <a href="https://github.com/ChaoningZhang/MobileSAM">MobileSAM</a> [<b>bib</b>]
-    </summary>
-
-```bibtex
-@article{mobile_sam,
-title={Faster Segment Anything: Towards Lightweight SAM for Mobile Applications},
-author={Zhang, Chaoning and Han, Dongshen and Qiao, Yu and Kim, Jung Uk and Bae, Sung-Ho and Lee, Seungkyu and Hong, Choong Seon},
-journal={arXiv preprint arXiv:2306.14289},
 year={2023}
 }
 ```

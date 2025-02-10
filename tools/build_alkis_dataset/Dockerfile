@@ -10,5 +10,5 @@ RUN python3 -m venv venv
 RUN source venv/bin/activate
 RUN venv/bin/pip install requests pyshp shapely tqdm rtree pillow numpy
 
-COPY build_alkis_roof_dataset_wcs.py /app/
+COPY roofsam_build_alkis_roof_dataset_wcs.py /app/
 WORKDIR /app

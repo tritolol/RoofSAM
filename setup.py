@@ -12,9 +12,12 @@ setup(
     ],
     packages=find_packages(),
     extras_require={
-        "all": ["pyshp>=2.3.1", "Rtree>=1.3.0"],
+        # dependencies for roofsam_build_alkis_roof_dataset_wcs.py
+        # the recommended way is to use docker instead
+        "all": ["pyshp>=2.3.1", "Rtree>=1.3.0", "requests>=2.32.3"],    
     },
-    scripts=["tools/roofsam_precompute_embeddings_cuda.py",
+    scripts=["tools/build_alkis_dataset/roofsam_build_alkis_roof_dataset_wcs.py"
+             "tools/roofsam_precompute_embeddings_cuda.py",
              "tools/roofsam_test.py",
              "tools/roofsam_train.py"]
 )

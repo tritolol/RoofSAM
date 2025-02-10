@@ -66,7 +66,7 @@ def main(args):
         for batch in tqdm(test_loader, desc="Testing"):
             embeddings = batch[0].to(device)
             point_coords = batch[1].to(device)
-            # Create dummy point labels (the model expects them)
+            # Create positive point labels
             point_labels = torch.ones((batch[1].shape[0], batch[1].shape[1])).to(device)
             targets = batch[2].unsqueeze(1).repeat((1, batch[1].shape[1])).to(device)
 
