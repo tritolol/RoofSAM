@@ -104,15 +104,18 @@ RoofSAM is comprised of two key components:
 The repository provides several command-line tools located in the `tools/` directory. These scripts are installed to your PATH during setup and can be configured via command-line arguments (use `-h` for help).
 
 - Embedding Precomputation:
-    roofsam_precompute_embeddings_cuda.py
+
+    `roofsam_precompute_embeddings_cuda.py`
 
     Description: Precompute image embeddings using the SAM image encoder across one or multiple CUDA devices. These embeddings are required for both training and testing.
 - Training:
-    roofsam_train.py
+
+    `roofsam_train.py`
 
     Description: Train the RoofSAM model using the provided dataset. Requires precomputed image embeddings.
 - Testing:
-    test.py
+
+    `test.py`
 
     Description: Evaluate a trained model. Also requires precomputed image embeddings.
 
