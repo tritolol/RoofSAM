@@ -1,7 +1,7 @@
 
 # RoofSAM: Adapting the Segment Anything Model to Rooftop Classification in Aerial Images
 
-**[ASILOMAR Conference on Signals, Systems, and Computers 2024 Paper](#)**
+**ASILOMAR Conference on Signals, Systems, and Computers 2024 Paper**
 
 RoofSAM adapts the powerful [Segment Anything Model (SAM)](https://github.com/facebookresearch/segment-anything) for the specialized task of classifying rooftop shapes in aerial imagery. By leveraging predefined building footprint polygons, RoofSAM uses point sampling to guide an adapted mask decoder, which then produces a point-wise roof shape class distribution. Final roof classifications are determined by majority voting over the sampled points.
 
