@@ -14,4 +14,7 @@ setup(
     extras_require={
         "all": ["pyshp>=2.3.1", "Rtree>=1.3.0"],
     },
+    scripts=["tools/roofsam_precompute_embeddings_cuda.py",
+             "tools/roofsam_test.py",
+             "tools/roofsam_train.py"]
 )
