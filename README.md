@@ -142,7 +142,6 @@ The repository is licensed under the [Apache 2.0 license](LICENSE).
   keywords={Image segmentation;Adaptation models;Visualization;Shape;Foundation models;Computational modeling;Urban planning;Training data;Data processing;Geospatial analysis;roof shape classification;aerial imagery analysis;semantic segmentation;geospatial data processing;foundation model adaptation;urban planning},
   doi={10.1109/IEEECONF60004.2024.10942786}}
 ```
-*Note*: Citation details will be updated upon publication.
 
 ## Acknowledgements
 
