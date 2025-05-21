@@ -131,10 +131,16 @@ The repository is licensed under the [Apache 2.0 license](LICENSE).
 ## Citing RoofSAM
 
 ```bibtex
-@misc{TBA,
-  title={RoofSAM: Adapting the Segment Anything Model to Rooftop Classification in Aerial Images},
-  note={To appear in ASILOMAR Conference on Signals, Systems, and Computers 2024}
-}
+@INPROCEEDINGS{10942786,
+  author={Bauer, Adrian and Krabbe, Jan-Christoph and Kollek, Kevin and Velten, Jörg and Kummert, Anton},
+  booktitle={2024 58th Asilomar Conference on Signals, Systems, and Computers}, 
+  title={RoofSam: Adapting the Segment Anything Model to Rooftop Classification in Aerial Images}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={350-353},
+  keywords={Image segmentation;Adaptation models;Visualization;Shape;Foundation models;Computational modeling;Urban planning;Training data;Data processing;Geospatial analysis;roof shape classification;aerial imagery analysis;semantic segmentation;geospatial data processing;foundation model adaptation;urban planning},
+  doi={10.1109/IEEECONF60004.2024.10942786}}
 ```
 *Note*: Citation details will be updated upon publication.
 
